@@ -10,6 +10,15 @@
 </div>
 </center>
 
+---
+
+## 개인별 링크
+|이름|링크|프레임워크|
+|---|---|---|
+|최승리|[github](https://github.com/apollo058/Moadata_Django.git)|Django|
+
+---
+
 ## 요구사항
 * 기존 요구 사항
   * JOB 저장: 입력받은 Job의 정보를 job.json파일에 저장
