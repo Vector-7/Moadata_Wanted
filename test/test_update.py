@@ -3,8 +3,8 @@ import pytest
 
 from api import get_app, generate_jobdatabase_engine
 
-CREATE_API = '/api/job/create'
-API = '/api/job'
+CREATE_API = '/api/jobs'
+API = '/api/jobs'
 
 example_job = {
     'job_name': 'Job1',

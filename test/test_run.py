@@ -14,8 +14,8 @@ import pandas as pd
 Task Logic에 대한 assert문은 사용하지 말 것
 """
 
-CREATE_API = '/api/job/create'
-RUN_API = '/api/job/run'
+CREATE_API = '/api/jobs'
+RUN_API = '/api/jobs'
 STORAGE_ROOT = 'storage/data'
 
 
@@ -75,7 +75,7 @@ def test_on_way_root(api):
     upload_job(job, api)
 
     # run
-    res = api.get(f'{RUN_API}/1')
+    res = api.get(f'{RUN_API}/1/run')
     assert res.status_code == 200
 
     output = pd.read_csv(f'{STORAGE_ROOT}/{output_file}')
@@ -118,7 +118,7 @@ def test_multiple_edges(api):
     save_files([file_b, file_c, file_d, file_e])
     upload_job(job, api)
 
-    res = api.get(f'{RUN_API}/1')
+    res = api.get(f'{RUN_API}/1/run')
     assert res.status_code == 200
 
     # 파일 부검
@@ -187,7 +187,7 @@ def test_with_remove_column(api):
     upload_job(job, api)
 
     # 실행
-    res = api.get(f'{RUN_API}/1')
+    res = api.get(f'{RUN_API}/1/run')
     assert res.status_code == 200
 
     # 부검

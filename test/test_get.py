@@ -2,8 +2,8 @@ import pytest
 from api import get_app, generate_jobdatabase_engine
 import json
 
-API = '/api/job'
-CREATE_API = '/api/job/create'
+API = '/api/jobs'
+CREATE_API = '/api/jobs'
 
 # 예시
 example_job = {
