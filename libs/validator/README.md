@@ -35,7 +35,6 @@ class MyValidator(Validator):
 v = MyValidator()
 success, err = v(20)
 print(success)  # True
-print(err)      # None
 ```
 
 ### AutomaticValidator

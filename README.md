@@ -196,7 +196,7 @@
   * (404) 데이터 없음
 
 ## Module Structure
-libs/urls의 Module Structure 입니다. 링크를 통해 자세한 설명을 볼 수 있습니다.
+libs/utils의 Module Structure 입니다. 링크를 통해 자세한 설명을 볼 수 있습니다.
 * libs
   * [io](libs/resource_access#io)
     * RawFileIO _(abstract class)_
@@ -208,12 +208,16 @@ libs/urls의 Module Structure 입니다. 링크를 통해 자세한 설명을 �
     * [Validator](libs/validator#Validator) _(abstract class)_
     * [AutomaticValidator](libs/validator#AutomaticValidator) _(class)_
     * [**ValidatorChain**](libs/validator#ValidatorChain) _(class)_
-* utils
+* utils (현재 코드 링크만 연결되어 있고 README.md는 추가로 작성 중)
   * algorithms
-    * job_data_searcher _(function)_
-    * sorting_graph _(function)_
-  * **JobDatabase** _(class)_
+    * [job_data_searcher](#binary-search-이분-탐색) _(function)_
+    * [sorting_graph](utils/algorithms/topological_sort.py) _(function)_
+  * [**JobDatabase**](utils/job_database/engine.py) _(class)_
   * get_job_validator_chain _(function - (class instance generator))_
+  * **[task](utils/job_database#Tasks)**
+    * read
+    * write
+    * drop
 
 ## Algorithm
 ### Binary Search (이분 탐색)
