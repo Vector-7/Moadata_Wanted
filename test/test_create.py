@@ -3,7 +3,7 @@ from api import get_app, generate_jobdatabase_engine
 import json
 
 # 이것만 사용한다.
-CREATE_API = '/api/job/create'
+CREATE_API = '/api/jobs'
 
 
 @pytest.fixture

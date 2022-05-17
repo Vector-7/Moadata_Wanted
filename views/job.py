@@ -7,7 +7,7 @@ class JobCreateView(Resource):
     """
     Job 생성 View
 
-    (POST)  /api/job/create     Job 생성
+    (POST)  /api/jobs   Job 생성
     """
 
     def post(self):
@@ -23,9 +23,9 @@ class JobView(Resource):
     """
     Job 데이터 관리 뷰
 
-    (GET)       /api/job/<int:job_id>   Job 정보 검색
-    (PATCH)     /api/job/<int:job_id>   Job 수정
-    (DELETE)    /api/job/<int:job_id>   Job 삭제
+    (GET)       /api/jobs/<int:job_id>   Job 정보 검색
+    (PATCH)     /api/jobs/<int:job_id>   Job 수정
+    (DELETE)    /api/jobs/<int:job_id>   Job 삭제
     """
 
     def get(self, job_id):
@@ -66,7 +66,7 @@ class JobRunView(Resource):
     """
     Job 실행 뷰
 
-    (GET)   /api/job/run/<int:job_id>   실행
+    (GET)   /api/jobs/<int:job_id>/run  실행
     """
     def get(self, job_id):
         try:

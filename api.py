@@ -17,9 +17,9 @@ def __set_app():
 
 
 def __set_uris(api):
-    api.add_resource(JobView, '/api/job/<int:job_id>')
-    api.add_resource(JobCreateView, '/api/job/create')
-    api.add_resource(JobRunView, '/api/job/run/<int:job_id>')
+    api.add_resource(JobView, '/api/jobs/<int:job_id>')
+    api.add_resource(JobCreateView, '/api/jobs')
+    api.add_resource(JobRunView, '/api/jobs/<int:job_id>/run')
 
 
 def get_app():
