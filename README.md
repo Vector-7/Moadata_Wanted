@@ -105,7 +105,7 @@
 
 |Method|uri|
 |---|---|
-|POST|```/api/job/create```|
+|POST|```/api/job```|
 
 * Input[json]
   ```json
@@ -196,7 +196,7 @@
 
 |Method|uri|
 |---|---|
-|GET|```/api/job/run/<int:job_id>```|
+|GET|```/api/job/<int:job_id>/run```|
 
 
 * Input
