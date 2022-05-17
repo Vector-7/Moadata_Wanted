@@ -117,7 +117,7 @@ ValidatorChain에 전부 집어 넣고 ```__call__``` 함수 하나로 모든 Va
     |Variable|Type|Comment|
     |---|---|---|
     |```validator```|```AutomaticValidator```|데이터를 검수할 AutomaticValidator|
-    |```pre_processor```|```Function(Any) -> Any```|데이터를 검수하기 전에 해당 Validator에 맞는 데이터 타입으로 변환하는 커스텀 함수다. |
+    |```pre_processor```|```Function(Any) -> Iterable[Any]```|데이터를 검수하기 전에 해당 Validator에 맞는 데이터 타입으로 변환하는 커스텀 함수다. 이때 리턴값은 List, Tuple 등이 되어야 한다. |
 
 * Returns
   * 없음
@@ -152,11 +152,11 @@ data = {'v1': 100, 'v2': 300}
 v = ValidatorChain()
 v.add_validator(
     AutomaticValidator(validate_logic=down1000),
-    lambda o: (o['v1'])
+    lambda o: (o['v1'],)
 )
 v.add_validator(
     AutomaticValidator(validate_logic=over100),
-    lambda o: (o['v2'])
+    lambda o: (o['v2'],)
 )
 
 success, err = v(data)
