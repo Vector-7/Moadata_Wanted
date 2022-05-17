@@ -41,6 +41,22 @@ class JobDatabaseEngine:
                 super(JobDatabaseEngine, cls).__new__(cls)
         return cls.jobdatabase_instance
 
+    def __read_from_database(self) -> Dict[str, Any]:
+        """
+        Json으로부터 데이터 불러오기
+        """
+        raw_storage = None
+        with JobDatabaseRead() as r:
+            raw_storage = json.load(r)
+        return raw_storage
+
+    def __write_to_database(self, data: Dict[str, Any]):
+        """
+        Json File에 갱신하기
+        """
+        with JobDatabaseWrite() as w:
+            json.dump(data, w, indent=4)
+
     def __init__(self):
         self.mutex = Lock()
         self.validator = get_job_validator_chain()
@@ -50,8 +66,7 @@ class JobDatabaseEngine:
         Job.json 초기화, storage 초기화
         테스트 할 때만 사용
         """
-        with JobDatabaseWrite() as w:
-            json.dump({'jobs': []}, w, indent=4)
+        self.__write_to_database({'jobs': []})
 
         # 모든 csv 파일을 삭제하고
         BASE_DIR = 'storage/data'
@@ -71,9 +86,7 @@ class JobDatabaseEngine:
         새로운 Job을 json에 저장
 
         :param job: 추가하고자 하는 데이터
-
         :return: 새로 생성된 Job ID
-
         :exception ValieError: 추가하려는 데이터가 잘못된 경우
         """
 
@@ -85,19 +98,16 @@ class JobDatabaseEngine:
 
             :return: 생성된 Job의 고유 아이디
             """
-            with JobDatabaseRead() as r:
-                # json에 있는 Data Load
-                storage = json.load(r)
-                # job id 생성
-                # 맨 마지막 job의 id에 1를 추가하는 방식
-                new_job_id = 1 if len(storage['jobs']) == 0 else \
-                    storage['jobs'][-1]['job_id'] + 1
+            storage = self.__read_from_database()
+            # job id 생성
+            # 맨 마지막 job의 id에 1를 추가하는 방식
+            new_job_id = 1 if len(storage['jobs']) == 0 else \
+                storage['jobs'][-1]['job_id'] + 1
             # job_id를 job에 추가 및 storage에 추가
             job['job_id'] = new_job_id
             storage['jobs'].append(job)
             # 파일에 작성
-            with JobDatabaseWrite() as w:
-                json.dump(storage, w, indent=4)
+            self.__write_to_database(storage)
             # job_id 리턴
             return new_job_id
 
@@ -105,12 +115,10 @@ class JobDatabaseEngine:
         is_valid, err = self.validator(job)
         if err:
             raise err
-        try:
-            job_id = __save()
-        except Exception as e:
-            raise e
-        else:
-            return job_id
+        elif not is_valid:
+            raise ValueError("Validate Failed")
+        # 에러 발생 시 바로 보냄
+        return __save()
 
     def update(self, job_id: int, updated_data: Dict[str, Any]) \
             -> bool:
@@ -124,9 +132,8 @@ class JobDatabaseEngine:
 
         @lock_while_using_file(self.mutex)
         def __update():
-            with JobDatabaseRead() as r:
-                all_data = json.load(r)
-                storage = all_data['jobs']
+            all_data = self.__read_from_database()
+            storage = all_data['jobs']
             # search data
             is_exists, idx = search_job_by_job_id(storage, job_id)
             if not is_exists:
@@ -135,12 +142,13 @@ class JobDatabaseEngine:
             is_valid, err = self.validator(updated_data)
             if not is_valid:
                 return False
+            if err:
+                raise err
             # update
             updated_data['job_id'] = job_id
             all_data['jobs'][idx] = updated_data
             # save
-            with JobDatabaseWrite() as w:
-                json.dump(all_data, w, indent=4)
+            self.__write_to_database(all_data)
             return True
 
         return __update()
@@ -163,23 +171,17 @@ class JobDatabaseEngine:
             파일에 직접 접근하여 데이터 구하기
             :return: Job_ID에 대한 정보, 못찾으면 None Return
             """
-            with JobDatabaseRead() as r:
-                storage = json.load(r)['jobs']
-                # idx -> job_id의 데이터가 위치해 있는 인덱스 값
-                is_exists, idx = search_job_by_job_id(storage, job_id)
+            storage = self.__read_from_database()['jobs']
+            # idx -> job_id의 데이터가 위치해 있는 인덱스 값
+            is_exists, idx = search_job_by_job_id(storage, job_id)
             return storage[idx] if is_exists else None
 
-        try:
-            # 파일에 접근해서 데이터 찾기
-            res = __get_item()
-        except Exception as e:
-            # 파일 상의 에러 발생
-            raise e
-        else:
-            if not res:
-                raise ValueError(f'Failed to find id: {job_id}')
-            else:
-                return res
+        # 파일에 접근해서 데이터 찾기
+        # 에러 발생은 View에서처리
+        res = __get_item()
+        if not res:
+            raise ValueError(f'Failed to find id: {job_id}')
+        return res
 
     def remove(self, job_id: int) \
             -> bool:
@@ -193,9 +195,8 @@ class JobDatabaseEngine:
         @lock_while_using_file(self.mutex)
         def __remove() -> bool:
             # Json에서 데이터 가져오기
-            with JobDatabaseRead() as r:
-                all_data = json.load(r)
-                storage = all_data['jobs']
+            all_data = self.__read_from_database()
+            storage = all_data['jobs']
             # 삭제할 데이터 검색
             is_exists, idx = search_job_by_job_id(storage, job_id)
             if not is_exists:
@@ -203,14 +204,11 @@ class JobDatabaseEngine:
             # 데이터 삭제 및 파일 갱신
             del storage[idx]
             all_data['jobs'] = storage
-            with JobDatabaseWrite() as w:
-                json.dump(all_data, w, indent=4)
+            self.__write_to_database(all_data)
             return True
 
-        try:
-            success = __remove()
-        except Exception as e:
-            raise e
+        # 에러는 view에서 처리
+        success = __remove()
         return True if success else False
 
     def run(self, job_id: int):
