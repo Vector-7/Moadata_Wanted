@@ -212,7 +212,7 @@ libs/utils의 Module Structure 입니다. 링크를 통해 자세한 설명을 �
   * algorithms
     * [job_data_searcher](#binary-search-이분-탐색) _(function)_
     * [sorting_graph](utils/algorithms/topological_sort.py) _(function)_
-  * [**JobDatabase**](utils/job_database/engine.py) _(class)_
+  * [**JobDatabase**](utils/job_database/) _(class)_
   * get_job_validator_chain _(function - (class instance generator))_
   * **[task](utils/job_database#Tasks)**
     * read
