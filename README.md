@@ -10,15 +10,13 @@
 </div>
 </center>
 
----
-
 ## 개인별 링크
 |이름|링크|프레임워크|
 |---|---|---|
 |최승리|[github](https://github.com/apollo058/Moadata_Django.git)|Django|
 |하정현|[github](https://github.com/Vector-7/Moadata_Wanted)|Flask|
+|남기윤|[github](https://github.com/Chilla-N/Moadata_Wanted/tree/main)|Flask|
 
----
 
 ## 요구사항
 * 기존 요구 사항
