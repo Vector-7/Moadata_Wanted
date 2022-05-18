@@ -105,7 +105,7 @@
 
 |Method|uri|
 |---|---|
-|POST|```/api/job```|
+|POST|```/api/jobs```|
 
 * Input[json]
   ```json
@@ -134,7 +134,7 @@
 
 |Method|uri|
 |---|---|
-|GET|```/api/job/<int:job_id>```|
+|GET|```/api/jobs/<int:job_id>```|
 
 * Input
   * 없음
@@ -159,7 +159,7 @@
 
 |Method|uri|
 |---|---|
-|PATCH|```/api/job/<int:job_id>```|
+|PATCH|```/api/jobs/<int:job_id>```|
 
 * Input[json]
   ```json
@@ -184,7 +184,7 @@
 
 |Method|uri|
 |---|---|
-|DELETE|```/api/job/<int:job_id>```|
+|DELETE|```/api/jobs/<int:job_id>```|
 
 * Input
   * 없음
@@ -196,7 +196,7 @@
 
 |Method|uri|
 |---|---|
-|GET|```/api/job/<int:job_id>/run```|
+|GET|```/api/jobs/<int:job_id>/run```|
 
 
 * Input
@@ -298,4 +298,22 @@ def __topological_sort(g, p) -> List[str]:
 ```
 
 ## DFD
+![](readme-asset/sd6.png)
+
+
 ## Sequence Diagram
+
+### JOB 추가
+![](readme-asset/sd1.png)
+
+### JOB 정보 얻기
+![](readme-asset/sd2.png)
+
+### JOB 수정
+![](readme-asset/sd3.png)
+
+### JOB 제거
+![](readme-asset/sd4.png)
+
+### JOB 수행
+![](readme-asset/sd5.png)
