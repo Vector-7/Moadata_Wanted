@@ -17,6 +17,7 @@
 |---|---|---|
 |최승리|[github](https://github.com/apollo058/Moadata_Django.git)|Django|
 |하정현|[github](https://github.com/Vector-7/wanted-2nd-moadata-flask)|Flask|
+|남기윤|[github](https://github.com/Chilla-N/Moadata_Wanted/tree/main)|Flask|
 
 ---
 
