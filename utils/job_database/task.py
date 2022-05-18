@@ -1,118 +1,194 @@
+from abc import ABCMeta, abstractmethod
 import pandas as pd
-from typing import Deque, Dict, List, Any
+from typing import Deque, Dict, List, Any, List
+import collections
+
+from utils.algorithms.topological_sort import topological_sort
 
 BASE_DIR = 'storage/data'
 
-
-def __merge_data_frames(left_frame: pd.DataFrame, right_frame: pd.DataFrame)    \
-        -> pd.DataFrame:
+def merge_dataframes(left_frame: pd.DataFrame, right_frame: pd.DataFrame):
     """
     두 개의 데이터 프레임을 병합하는 단일 함수
-    :param left_frame:  왼쪽 Data Frame
-    :param right_frame: 오른쪽 Data Frame
-    :return: left + right
+
+    겹치는 Column이 없으면 그냥 이어붙이고
+    하나라도 있는 경우 해당 Column을 중심으로 병합한다.
     """
     left_cols, right_cols = \
         set(left_frame.columns.values), set(right_frame.columns.values)
-    # 겹치는 colum
+    
+    # 겹치는 colum 확인
     common_cols = left_cols & right_cols
     if common_cols:
         # 동일한 column이 존재하는 경우 동일 column대로 병합
-        return pd.merge(left_frame, right_frame, how='outer', on=list(common_cols))
+        return pd.merge(left_frame, right_frame, how='outer', on=list(common_cols)), list(common_cols)
     # 없는 경우 그냥 column을 합친다.
-    return pd.concat([left_frame, right_frame], axis=1)
+    return pd.concat([left_frame, right_frame], axis=1), []
 
+class TaskSpace(metaclass=ABCMeta):
+    """
+    Task 실행 단위 클래스
 
-def __merge_buffer(buffer: Dict[str, Deque[pd.DataFrame]], task_name: str) \
-        -> pd.DataFrame:
+    :param task_name: Task 이름
+    :param tasklog_stack: 수행한 작업(병합, 기타 작업 등..)의 내용을 보관(Rollback에 사용)
+    :param dataframe_buffer: 이전 Task의 결과 dataframe을 모아서 Task실행 때 한꺼번에 병합하는 데 사용한다.
     """
-    buffer map에서 task_name 위치에 있는 buffer의 모든 DataFrame을 하나로 병합한다.
-    :param buffer: buffer map
-    :param task_name: task name
-    :return: buffer[task_name]에 있는 모든 DataFrame의 합
-    """
-    data_frame = pd.DataFrame()
-    while buffer[task_name]:
-        data_frame = __merge_data_frames(buffer[task_name].pop(), data_frame)
-    return data_frame
-
-
-def __send_data_to_next(graph, buffer, dataframe, start_task)   \
-        -> None:
-    """
-    작업이 완료된 DataFrame을 다음 목적지 task에다 전달
-    :param graph: task graph
-    :param buffer: task buffer
-    :param dataframe: 다음 목적지로 보낼 dataframe
-    :param start_task:
-    """
-    for next_task in graph[start_task]:
-        # 여러 방향으로 보낼 수 있기 때문에 copy()를 사용한다.
-        buffer[next_task].appendleft(pd.DataFrame.copy(dataframe))
-
-
-def task_read(graph: Dict[str, List[str]],
-              buffer: Dict[str, Deque[Any]],
-              task_name: str,
-              filename: str,
-              sep: str) -> None:
-    """
-    특정 파일로부터 데이터를 불러온다
-    :param graph: task graph
-    :param buffer: task buffer
-    :param task_name: task name
-    :param filename: 불러 올 파일 이름
-    :param sep: 구분자
-    """
+    task_name: str
+    tasklog_stack: List[Dict[str, Any]]
+    dataframe_buffer: Deque[pd.DataFrame]
     
-    # buffer에 남아있는 Data Frame과 전부 병합
-    data_frame = __merge_buffer(buffer, task_name)
-    try:
-        new_data = pd.read_csv(f'{BASE_DIR}/{filename}', sep=sep)
-        # 파일에서 읽어온 data frame과 현재 data frame을 병합한다.
-        data_frame = __merge_data_frames(data_frame, new_data)
-    except Exception:
-        # 파일이 없는 경우 그냥 Pass한다
+    def __init__(self, task_name: str):
+        self.task_name = task_name
+        self.tasklog_stack = []
+        self.dataframe_buffer = collections.deque()
+
+    def __str__(self):
+        return self.task_name
+
+    def merge_dataframes_in_buffer(self):
+        """
+        dataframe_buffer에 들어있는 모든 dataframe을 병합한다.
+        """
+        merged_dataframe = pd.DataFrame()
+        while self.dataframe_buffer:
+            merged_dataframe, _ = merge_dataframes(
+                merged_dataframe, self.dataframe_buffer.pop())
+        return merged_dataframe
+
+    def input_dataframe(self, dataframe: pd.DataFrame):
+        """
+        dataframe_buffer에 dataframe을 push할 때 사용
+        """
+        self.dataframe_buffer.appendleft(pd.DataFrame.copy(dataframe))
+    
+    @abstractmethod
+    def run(self):
+        """
+        단일 Task 실행
+        """
         pass
 
-    # 다음 목적지로 Data Frame 전송
-    __send_data_to_next(graph, buffer, data_frame, task_name)
-
-
-def task_write(graph: Dict[str, List[str]],
-               buffer: Dict[str, Deque[Any]],
-               task_name: str,
-               filename: str,
-               sep: str):
-    """
-    파일에 DataFrame을 작성한다.
-    :param graph: task graph
-    :param buffer: task buffer
-    :param task_name: task name
-    :param filename: 생성 또는 새로 갱신할 파일 이름
-    :param sep: 구분자
-    """
-    data_frame = __merge_buffer(buffer, task_name)
-    data_frame.to_csv(f'{BASE_DIR}/{filename}', sep=sep, index=False, index_label=False)
-    __send_data_to_next(graph, buffer, data_frame, task_name)
-
-
-def task_drop_column(graph: Dict[str, List[str]],
-                     buffer: Dict[str, Deque[Any]],
-                     task_name: str,
-                     column_name: str):
-    """
-    DataFrame에 Column을 하나 제거한다.
-    :param graph: task graph
-    :param buffer: task buffer
-    :param task_name: task name
-    :param column_name: 제거할 Column 이름
-    """
-    data_frame = __merge_buffer(buffer, task_name)
-    try:
-        data_frame = data_frame.drop([column_name], axis=1)
-    except Exception:
-        # 해당 컬럼이 없으면 그냥 지나감
+    @abstractmethod
+    def rollback(self):
+        """
+        단일 Task 복구
+        """
         pass
 
-    __send_data_to_next(graph, buffer, data_frame, task_name)
+class TaskReadSpace(TaskSpace):
+    """
+    Read Task
+
+    :params filename: 읽기 대상의 filename
+    :params sep: 읽기 대상의 구분자
+    """
+    filename: str
+    sep: str
+    def __init__(self, task_name: str, filename: str, sep: str):
+        super().__init__(task_name)
+        self.filename = filename
+        self.sep = sep
+
+    def run(self):
+        dataframe = self.merge_dataframes_in_buffer()
+        try:
+            new_data = pd.read_csv(f'{BASE_DIR}/{self.filename}', sep=self.sep)
+            dataframe, _ = merge_dataframes(dataframe, new_data)
+        except Exception:
+            pass
+        return dataframe
+
+    def rollback(self):
+        raise NotImplemented()
+
+class TaskWriteSpace(TaskSpace):
+    """
+    Read Task
+
+    :params filename: 읽기 대상의 filename
+    :params sep: 읽기 대상의 구분자
+    """
+    filename: str
+    sep: str
+    def __init__(self, task_name: str, filename: str, sep: str):
+        super().__init__(task_name)
+        self.filename = filename
+        self.sep = sep
+
+    def run(self):
+        dataframe = self.merge_dataframes_in_buffer()
+        dataframe.to_csv(f'{BASE_DIR}/{self.filename}', 
+            sep=self.sep, index=False, index_label=False)
+        return dataframe
+
+    def rollback(self):
+        raise NotImplemented()
+
+class TaskDropColumnSpace(TaskSpace):
+    """
+    Column drop Task
+
+    :params column_name: 삭제 대상의 Column
+    """
+    column_name: str
+    def __init__(self, task_name: str, column_name: str):
+        super().__init__(task_name)
+        self.column_name = column_name
+
+    def run(self):
+        dataframe = self.merge_dataframes_in_buffer()
+        try:
+            dataframe = dataframe.drop([self.column_name], axis=1)
+        except Exception:
+            pass
+        return dataframe
+
+    def rollback(self):
+        raise NotImplemented()
+
+class TaskWorker:
+    """
+    Job Data에 있는 Task Data를 활용해
+    모든 Task를 실행
+
+    :params task_dictionary: task_name으로 TaskSpace를 찾는다.
+    :params graph: task_list
+    """
+    task_dictionary: Dict[str, TaskSpace]
+    graph: Dict[str, str]
+
+    def __init__(self, job_data: Dict[str, Any]):
+        """
+        그래프 및 데이터 세팅
+        """
+        self.task_dictionary = dict()
+
+        # 데이터 가져오기
+        self.graph, properties = \
+            job_data['task_list'], job_data['property']
+
+        # TaskSpace 세팅
+        for task_name, v in properties.items():
+            task_type = v['task_name']
+            task_space = None
+            if task_type == 'read':
+                task_space = TaskReadSpace(task_name, v['filename'], v['sep'])
+            elif task_type == 'write':
+                task_space = TaskWriteSpace(task_name, v['filename'], v['sep'])
+            elif task_type == 'drop':
+                task_space = TaskDropColumnSpace(task_name, v['column_name'])
+
+            self.task_dictionary[task_name] = task_space
+
+    def __call__(self):
+        """
+        Task 실행
+        """
+        task_queue: Deque[str] = collections.deque(topological_sort(self.graph))
+        # Run
+        while task_queue:
+            task_name = task_queue.popleft()
+            result_dataframe = self.task_dictionary[task_name].run()
+            # 다른 TaskSpace에 결과 데이터 뿌리기
+            for next_task_name in self.graph[task_name]:
+                self.task_dictionary[next_task_name].input_dataframe(result_dataframe)
