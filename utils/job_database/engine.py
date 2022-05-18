@@ -1,17 +1,15 @@
 from threading import Lock
 from typing import Dict, Any, Optional
 import json
-import collections
 import os
 import pandas as pd
 
 from libs.validator import ValidatorChain
 from libs.resource_access import lock_while_using_file
+from utils.algorithms.job_searcher import search_job_by_binary_search
 from utils.job_database.io import JobDatabaseRead, JobDatabaseWrite
-from utils.job_database.task import task_read, task_write, task_drop_column
+from utils.job_database.task import TaskWorker
 from utils.validator_chains import get_job_validator_chain
-from utils.algorithms import topological_sort
-from utils.job_database.default_algorithm import search_job_by_job_id
 
 
 class JobDatabaseEngine:
@@ -90,6 +88,9 @@ class JobDatabaseEngine:
         :exception ValieError: 추가하려는 데이터가 잘못된 경우
         """
 
+        def __set_job_id(job_list_size: int):
+            return 1 if job_list_size == 0 else job_list_size + 1
+
         @lock_while_using_file(self.mutex)
         def __save() -> int:
             """
@@ -98,11 +99,10 @@ class JobDatabaseEngine:
 
             :return: 생성된 Job의 고유 아이디
             """
+            # 데이터 가져오기
             storage = self.__read_from_database()
-            # job id 생성
-            # 맨 마지막 job의 id에 1를 추가하는 방식
-            new_job_id = 1 if len(storage['jobs']) == 0 else \
-                storage['jobs'][-1]['job_id'] + 1
+            # job id 발급
+            new_job_id = __set_job_id(len(storage['jobs']))
             # job_id를 job에 추가 및 storage에 추가
             job['job_id'] = new_job_id
             storage['jobs'].append(job)
@@ -135,7 +135,7 @@ class JobDatabaseEngine:
             all_data = self.__read_from_database()
             storage = all_data['jobs']
             # search data
-            is_exists, idx = search_job_by_job_id(storage, job_id)
+            is_exists, idx = search_job_by_binary_search(storage, job_id)
             if not is_exists:
                 raise ValueError('Data Not Found')
             # validate data
@@ -173,7 +173,7 @@ class JobDatabaseEngine:
             """
             storage = self.__read_from_database()['jobs']
             # idx -> job_id의 데이터가 위치해 있는 인덱스 값
-            is_exists, idx = search_job_by_job_id(storage, job_id)
+            is_exists, idx = search_job_by_binary_search(storage, job_id)
             return storage[idx] if is_exists else None
 
         # 파일에 접근해서 데이터 찾기
@@ -198,7 +198,7 @@ class JobDatabaseEngine:
             all_data = self.__read_from_database()
             storage = all_data['jobs']
             # 삭제할 데이터 검색
-            is_exists, idx = search_job_by_job_id(storage, job_id)
+            is_exists, idx = search_job_by_binary_search(storage, job_id)
             if not is_exists:
                 return False
             # 데이터 삭제 및 파일 갱신
@@ -212,35 +212,13 @@ class JobDatabaseEngine:
         return True if success else False
 
     def run(self, job_id: int):
-        """
-        해당 Task를 실행한다.
-        :param job_id: 실행할 Task_ID 데이터
-        """
 
         @lock_while_using_file(self.mutex)
-        def __run(queue, buffer, graph, properties):
-            while queue:
-                task = queue.popleft()
-                task_type = properties[task]['task_name']
-                if task_type == 'read':
-                    task_read(graph, buffer, task,
-                              properties[task]['filename'], properties[task]['sep'])
-                elif task_type == 'write':
-                    task_write(graph, buffer, task,
-                               properties[task]['filename'], properties[task]['sep'])
-                elif task_type == 'drop':
-                    task_drop_column(graph, buffer,
-                                     task, properties[task]['column_name'])
+        def __run(job_data):
+            TaskWorker(job_data)()
 
-        # 데이터 가져오기
         try:
-            data = self.get_item(job_id)
+            job_data = self.get_item(job_id)
         except ValueError as e:
             raise e
-        graph, properties = data['task_list'], data['property']
-        # DataFrame Buffer 생성하기
-        data_frame_buffer = {k: collections.deque() for k in properties.keys()}
-
-        # 실행 순서 만들기
-        run_queue = collections.deque(topological_sort(graph))
-        __run(run_queue, data_frame_buffer, graph, properties)
+        __run(job_data)
