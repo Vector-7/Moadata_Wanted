@@ -5,19 +5,9 @@ import pytest
 from api import get_app, generate_jobdatabase_engine
 import pandas as pd
 
-"""
-해당 테스트의 목적은
-결과 값에 대한 판정이 아닌,
-해당 Task Logic에 대한 결과를 관찰하는 데 있다.
-추가 요구사항에 대한 기능 튜닝을 목적으로 하며
-정답이 확신한 경우나, 기타 특수한 경우가 아닌 이상 
-Task Logic에 대한 assert문은 사용하지 말 것
-"""
-
 CREATE_API = '/api/jobs'
 RUN_API = '/api/jobs'
 STORAGE_ROOT = 'storage/data'
-
 
 @pytest.fixture
 def api():
