@@ -52,3 +52,11 @@ class TaskWorker:
             for next_task_name in self.graph[task_name]:
                 self.task_dictionary[next_task_name]    \
                     .input_dataframe(task_name, result_dataframe)
+        
+
+        for k, v, in self.task_dictionary.items():
+            print(k)
+            for s in v.tasklog_stack:
+                print(s)
+            print()
+        print()
