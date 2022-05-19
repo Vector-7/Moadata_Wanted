@@ -216,16 +216,18 @@ libs/utils의 Module Structure 입니다. 링크를 통해 자세한 설명을 �
     * [Validator](libs/validator#Validator) _(abstract class)_
     * [AutomaticValidator](libs/validator#AutomaticValidator) _(class)_
     * [**ValidatorChain**](libs/validator#ValidatorChain) _(class)_
-* utils (현재 코드 링크만 연결되어 있고 README.md는 추가로 작성 중)
+* utils
   * algorithms
     * [job_data_searcher](#binary-search-이분-탐색) _(function)_
     * [sorting_graph](utils/algorithms/topological_sort.py) _(function)_
   * [**JobDatabase**](utils/job_database/) _(class)_
   * get_job_validator_chain _(function - (class instance generator))_
-  * **[task](utils/job_database#Tasks)**
-    * read
-    * write
-    * drop
+  * **[task](utils/job_database#Task)**
+    * [TaskSpace](utils/job_database/task#TaskSpace) _(abstract class)_
+      * TaskReadSpace _(class)_
+      * TaskWriteSpace _(class)_
+      * TaskDropColumnSpace _(class)_
+    * [**TaskWorker**](utils/job_database/task#TaskWorker) _(class)_
 
 ## Algorithm
 ### Binary Search (이분 탐색)

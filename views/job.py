@@ -13,8 +13,8 @@ class JobCreateView(Resource):
     def post(self):
         try:
             job_id = JobDatabaseEngine().save(request.get_json())
-        except Exception as e:
-            return {'error': str(e)}, 400
+        except Exception:
+            return {'error': 'Bad Request'}, 400
         else:
             return {'job_id': job_id}, 201
 
